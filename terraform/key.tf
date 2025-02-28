@@ -18,7 +18,7 @@ resource "aws_key_pair" "jumpbox-key" {
   public_key = tls_private_key.jumpbox.public_key_openssh
 
   provisioner "local-exec" {
-    command = "echo '${tls_private_key.jumpbox.private_key_pem}' > ./jumpbox-${var.team_number}-key.pem"
+    command = "echo '${tls_private_key.jumpbox.private_key_pem}' > ./jumpbox-${var.team_number}-key.pem && chmod 600 ./jumpbox-${var.team_number}-key.pem"
   }
 
   provisioner "local-exec" {
@@ -32,7 +32,7 @@ resource "aws_key_pair" "kali-key" {
   public_key = tls_private_key.kali.public_key_openssh
 
   provisioner "local-exec" {
-    command = "echo '${tls_private_key.kali.private_key_pem}' > ./kali-${var.team_number}-key.pem"
+    command = "echo '${tls_private_key.kali.private_key_pem}' > ./kali-${var.team_number}-key.pem && chmod 600 ./kali-${var.team_number}-key.pem"
   }
 
   provisioner "local-exec" {
@@ -46,7 +46,7 @@ resource "aws_key_pair" "team-key" {
   public_key = tls_private_key.team.public_key_openssh
 
   provisioner "local-exec" {
-    command = "echo '${tls_private_key.team.private_key_pem}' > ./team-${var.team_number}-key.pem"
+    command = "echo '${tls_private_key.team.private_key_pem}' > ./team-${var.team_number}-key.pem && chmod 600 ./team-${var.team_number}-key.pem"
   }
 
   provisioner "local-exec" {
