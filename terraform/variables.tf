@@ -30,7 +30,7 @@ variable "ubuntu_ami" {
 variable "centos_ami" {
   description = "AMI ID for CentOS Instances"
   type        = string
-  default     = "ami-052efd3df9dad4825"
+  default     = "ami-0705f7887207411ca"
 }
 
 variable "windows2022_ami" {
