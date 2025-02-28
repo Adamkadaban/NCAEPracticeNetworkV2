@@ -11,6 +11,14 @@ resource "aws_instance" "jumpbox" {
     volume_size = 32
     volume_type = "gp3"
   }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y && apt install pipx -y
+              pipx install --include-deps ansible-core==2.16
+              pipx inject ansible argcomplete
+              pipx ensurepath
+              EOF
 }
 
 # Kali for attacker
@@ -107,4 +115,10 @@ resource "aws_instance" "rocky_workstation" {
     volume_size = 32
     volume_type = "gp3"
   }
+
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo dnf update -y
+              sudo dnf install python3 -y
+              EOF
 }
