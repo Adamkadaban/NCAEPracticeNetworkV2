@@ -16,7 +16,8 @@ resource "aws_instance" "jumpbox" {
               #!/bin/bash
               apt update -y && apt install pipx -y
               pipx install --include-deps ansible-core==2.16
-              pipx inject ansible argcomplete
+              pipx inject ansible-core argcomplete
+              pipx inject ansible-core passlib
               pipx ensurepath
               EOF
 }
