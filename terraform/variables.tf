@@ -18,7 +18,7 @@ variable "region" {
 variable "debian_ami" {
   description = "AMI ID for Debian Instances"
   type        = string
-  default     = "ami-0057260feaab58d28"
+  default     = "ami-064519b8c76274859"
 }
 
 variable "ubuntu_ami" {
