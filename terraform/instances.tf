@@ -1,7 +1,7 @@
 # VPN for each team
 resource "aws_instance" "jumpbox" {
   ami                         = var.debian_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.public_subnet.id
   key_name                    = "jumpbox-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.jumpbox_sg.id]
@@ -27,7 +27,7 @@ resource "aws_instance" "jumpbox" {
 resource "aws_instance" "kali_attacker" {
   private_ip                  = "192.168.${var.team_number}.10"
   ami                         = var.kali_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.team_subnet.id
   key_name                    = "kali-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.internal_sg.id]
@@ -44,7 +44,7 @@ resource "aws_instance" "kali_attacker" {
 resource "aws_instance" "debian_backup" {
   private_ip                  = "192.168.${var.team_number}.11"
   ami                         = var.debian_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.team_subnet.id
   key_name                    = "team-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.internal_sg.id]
@@ -60,7 +60,7 @@ resource "aws_instance" "debian_backup" {
 resource "aws_instance" "ubuntu_db" {
   private_ip                  = "192.168.${var.team_number}.12"
   ami                         = var.ubuntu_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.team_subnet.id
   key_name                    = "team-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.internal_sg.id]
@@ -76,7 +76,7 @@ resource "aws_instance" "ubuntu_db" {
 resource "aws_instance" "centos_fileshare" {
   private_ip                  = "192.168.${var.team_number}.13"
   ami                         = var.centos_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.team_subnet.id
   key_name                    = "team-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.internal_sg.id]
@@ -91,7 +91,7 @@ resource "aws_instance" "centos_fileshare" {
 resource "aws_instance" "debian_web" {
   private_ip                  = "192.168.${var.team_number}.14"
   ami                         = var.debian_ami
-  instance_type               = "t2.micro"
+  instance_type               = "t2.small"
   subnet_id                   = aws_subnet.team_subnet.id
   key_name                    = "team-${var.team_number}-key"
   vpc_security_group_ids      = [aws_security_group.internal_sg.id]
