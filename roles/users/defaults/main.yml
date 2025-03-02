@@ -1,0 +1,17 @@
+---
+# defaults file for users
+
+# Fixed salt for password hashing to ensure idempotence
+password_salt: "NCAEsalt123456"
+
+# Interesting users with pre-hashed passwords for idempotence
+interesting_users:
+  - username: 'j.wilson'
+    password: 'hackertracker'
+    password_hash: '$6$NCAEsalt123456$tpfWm5ytdJKE0PaYLHwjEv6zE2VCrQWXHGndc2yvirkQo.xNTy7aWD7rN8sTXjCMYk1cmtyWXUOqcef/JKMF/1'
+  - username: 'c.resch'
+    password: 'entsecrules'
+    password_hash: '$6$NCAEsalt123456$qJXtu5W.W16ADO9hpUYTzJ/gguLsZkku0sz1q9eZP4iUbem7Hf70GCcCy5KDCAAcrlL2FHM.L7QRXK4zBKhu5/'
+  - username: 'j.rice'
+    password: 'ufsitnumberone'
+    password_hash: '$6$NCAEsalt123456$Prh7rV5jlrSWTJFbnmMhuqOpF4SruJMg3pivj.nNPZA53bD7q0HLpwHCV3PYYlApVViMP82awhePIoJRaR9l3.'

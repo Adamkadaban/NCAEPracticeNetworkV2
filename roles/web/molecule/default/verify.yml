@@ -1,0 +1,24 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: true
+  
+  tasks:
+    - name: Verify web directory exists
+      ansible.builtin.stat:
+        path: "{{ web_root }}"
+      register: web_directory
+      failed_when: not web_directory.stat.exists
+      
+    - name: Verify index.php file exists
+      ansible.builtin.stat:
+        path: "{{ web_root }}/index.php"
+      register: index_file
+      failed_when: not index_file.stat.exists
+      
+    - name: Check content of index.php file
+      ansible.builtin.command: "grep -E 'My comments|{{ db_server }}|{{ db_user }}|{{ db_password }}|{{ db_name }}' {{ web_root }}/index.php"
+      register: php_content
+      changed_when: false
+      failed_when: php_content.rc != 0

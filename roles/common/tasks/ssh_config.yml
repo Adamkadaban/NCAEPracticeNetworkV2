@@ -1,0 +1,81 @@
+---
+# SSH configuration tasks
+
+- name: Check sshd_config exists
+  stat:
+    path: /etc/ssh/sshd_config
+  register: sshd_config_stat
+  changed_when: false
+
+- name: Enable root logon for SSH in main config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?\s*PermitRootLogin\s+'
+    line: 'PermitRootLogin yes'
+    state: present
+  when: sshd_config_stat.stat.exists
+  register: sshd_root_login
+  changed_when: sshd_root_login.changed
+  notify: restart sshd
+
+- name: Enable password authentication in main config
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?\s*PasswordAuthentication\s+'
+    line: 'PasswordAuthentication yes'
+    state: present
+  when: sshd_config_stat.stat.exists
+  register: sshd_password_auth
+  changed_when: sshd_password_auth.changed
+  notify: restart sshd
+
+- name: Find include directory in SSH config
+  ansible.builtin.shell: "grep -E '^Include' /etc/ssh/sshd_config | awk '{print $2}' | cut -d '*' -f 1"
+  register: ssh_include_dir
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  when: sshd_config_stat.stat.exists
+
+- name: Find config files in include directory
+  ansible.builtin.find:
+    paths: "{{ ssh_include_dir.stdout }}"
+    patterns: "*"
+    file_type: file
+  register: ssh_config_files
+  when: 
+    - sshd_config_stat.stat.exists
+    - ssh_include_dir.stdout != ""
+
+- name: Enable root login in included config files
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^#?\s*PermitRootLogin\s+'
+    line: 'PermitRootLogin yes'
+    state: present
+  loop: "{{ ssh_config_files.files | default([]) }}"
+  register: included_root_login
+  changed_when: included_root_login.changed
+  notify: restart sshd
+  when: ssh_config_files.matched | default(0) > 0
+
+- name: Enable password authentication in included config files
+  ansible.builtin.lineinfile:
+    path: "{{ item.path }}"
+    regexp: '^#?\s*PasswordAuthentication\s+'
+    line: 'PasswordAuthentication yes'
+    state: present
+  loop: "{{ ssh_config_files.files | default([]) }}"
+  register: included_password_auth
+  changed_when: included_password_auth.changed
+  notify: restart sshd
+  when: ssh_config_files.matched | default(0) > 0
+
+- name: Symlink root bash history to /dev/null
+  ansible.builtin.file:
+    src: /dev/null
+    dest: /root/.bash_history
+    state: link
+    force: yes
+  register: bash_history_link
+  changed_when: bash_history_link.changed

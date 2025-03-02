@@ -1,0 +1,27 @@
+---
+galaxy_info:
+  role_name: kali
+  namespace: ncae
+  author: ncae_admin
+  description: Configuration for Kali Linux attack machine with offensive security tools
+  company: NCAE
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Kali
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - bullseye
+
+  galaxy_tags:
+    - security
+    - pentesting
+    - kali
+    - offensive
+
+dependencies: []

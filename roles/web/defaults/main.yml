@@ -1,0 +1,11 @@
+---
+# defaults file for web
+
+# Web directory
+web_root: "/var/www/html"
+
+# Database connection details
+db_server: "10.10.0.42"
+db_user: "commentUser"
+db_password: "password123"
+db_name: "comments"

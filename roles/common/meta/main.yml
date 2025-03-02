@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  role_name: common
+  namespace: ncae
+  author: ncae_admin
+  description: Common system misconfigurations and vulnerabilities for training environments
+  company: NCAE
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Debian
+      versions:
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: EL
+      versions:
+        - "7"
+        - "8"
+        - "9"
+
+  galaxy_tags:
+    - security
+    - training
+    - system
+
+dependencies: []

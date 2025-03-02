@@ -1,0 +1,12 @@
+---
+# tasks file for users
+
+- name: Create and set passwords for interesting users
+  ansible.builtin.user:
+    name: "{{ item.username }}"
+    password: "{{ item.password_hash }}"
+    create_home: yes
+    state: present
+  loop: "{{ interesting_users }}"
+  register: user_created
+  changed_when: user_created.changed

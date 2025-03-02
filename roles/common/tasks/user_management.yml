@@ -1,0 +1,146 @@
+---
+# User management tasks
+
+- name: Set root password
+  ansible.builtin.user:
+    name: root
+    password: "{{ root_password_hash }}"
+  register: root_password_result
+  changed_when: root_password_result.changed
+
+- name: Create blue team user with password
+  ansible.builtin.user:
+    name: blueteam
+    password: "{{ blueteam_password_hash }}"
+    state: present
+    create_home: yes
+  register: blueteam_result
+  changed_when: blueteam_result.changed
+
+- name: Create red team user
+  ansible.builtin.user:
+    name: redteam
+    password: "{{ redteam_password_hash }}"
+    state: present
+    create_home: yes
+  register: redteam_result
+  changed_when: redteam_result.changed
+
+- name: Install malicious users and add to sudoers file
+  block:
+    - name: Create users
+      user:
+        name: "{{ item.username }}"
+        state: present
+        shell: /bin/bash
+        create_home: yes
+        groups: "{{ item.groups }}"
+        password: "{{ item.username | password_hash('sha512', password_salt) }}"
+      loop: "{{ malicious_users }}"
+      register: users_created
+      changed_when: users_created.changed
+
+    - name: Add user to sudoers file
+      copy:
+        dest: "/etc/sudoers.d/{{ item.username }}"
+        content: "{{ item.username }} ALL=(ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
+        mode: '0440'
+      loop: "{{ malicious_users }}"
+      register: sudoers_added
+      changed_when: sudoers_added.changed
+
+    - name: Include sudoers.d in sudoers file
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        regexp: '^#includedir /etc/sudoers\.d'
+        line: "#includedir /etc/sudoers.d"
+        validate: "visudo -cf %s"
+        state: present
+      register: sudoers_include
+      changed_when: sudoers_include.changed
+
+    - name: Add blueteam to sudoers
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/blueteam"
+        content: "blueteam ALL=(ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
+        mode: '0440'
+      register: blueteam_sudoers
+      changed_when: blueteam_sudoers.changed
+
+- name: Set nologin to be bash
+  block:
+    - name: Get nologin path based on distribution
+      shell: |
+        if [ -f /etc/rocky-release ] || [ -f /etc/redhat-release ]; then
+          which nologin || echo "/sbin/nologin"
+        else
+          which nologin
+        fi
+      register: find_nologin
+      changed_when: false
+      check_mode: no
+      
+    - name: Get bash path
+      shell: which bash
+      register: find_bash
+      changed_when: false
+      check_mode: no
+    
+    - name: Set path variables
+      set_fact:
+        nologin_path: "{{ find_nologin.stdout }}"
+        bash_path: "{{ find_bash.stdout }}"
+
+    - name: Check if nologin exists
+      stat:
+        path: "{{ nologin_path }}"
+      register: nologin_stat
+
+    - name: Check if backup already exists
+      stat:
+        path: "{{ nologin_path }}.bak"
+      register: backup_stat
+
+    - name: Create file hash fact for idempotency 
+      set_fact:
+        backup_file_exists: "{{ backup_stat.stat.exists | default(false) }}"
+      
+    - name: Backup original nologin
+      copy:
+        src: "{{ nologin_path }}"
+        dest: "{{ nologin_path }}.bak"
+        remote_src: yes
+      when: nologin_stat.stat.exists and not backup_file_exists
+      register: nologin_backup
+      
+    - name: Check if nologin is already bash
+      shell: |
+        if [ -f "{{ nologin_path }}" ] && [ -f "{{ bash_path }}" ]; then
+          nologin_md5=$(md5sum "{{ nologin_path }}" | awk '{print $1}')
+          bash_md5=$(md5sum "{{ bash_path }}" | awk '{print $1}')
+          if [ "$nologin_md5" = "$bash_md5" ]; then
+            echo "already_replaced"
+          else
+            echo "needs_replacement"
+          fi
+        else
+          echo "path_error"
+        fi
+      register: nologin_check
+      changed_when: false
+      check_mode: no
+      
+    - name: Create replacement fact for idempotency
+      set_fact:
+        needs_replacement: "{{ nologin_check.stdout == 'needs_replacement' }}"
+
+    - name: Replace nologin with bash
+      copy:
+        src: "{{ bash_path }}"
+        dest: "{{ nologin_path }}"
+        remote_src: yes
+        mode: preserve
+      when: nologin_stat.stat.exists and needs_replacement
+      register: nologin_replaced

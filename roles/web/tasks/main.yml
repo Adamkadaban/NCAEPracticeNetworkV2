@@ -1,0 +1,26 @@
+---
+# tasks file for web
+
+- name: Make sure web folder exists
+  ansible.builtin.file:
+    path: "{{ web_root }}"
+    state: directory
+    mode: '0755'
+  register: web_folder
+  changed_when: web_folder.changed
+
+- name: Check if index.php exists
+  ansible.builtin.stat:
+    path: "{{ web_root }}/index.php"
+  register: index_exists
+  changed_when: false
+
+- name: Place web code
+  ansible.builtin.template:
+    src: index.php.j2
+    dest: "{{ web_root }}/index.php"
+    mode: '0644'
+    owner: root
+    group: root
+  register: web_code
+  changed_when: web_code.changed

@@ -1,0 +1,7 @@
+---
+# handlers file for kali
+
+- name: restart sliver
+  ansible.builtin.service:
+    name: sliver
+    state: restarted

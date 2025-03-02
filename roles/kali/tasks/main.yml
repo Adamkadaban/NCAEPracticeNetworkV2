@@ -1,0 +1,14 @@
+---
+# tasks file for kali
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name: "{{ kali_packages }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  register: packages_installed
+  changed_when: packages_installed.changed
+
+- name: Install and configure sliver
+  include_tasks: sliver.yml

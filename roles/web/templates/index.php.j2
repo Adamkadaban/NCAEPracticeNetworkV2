@@ -1,0 +1,32 @@
+<?php
+
+echo "<h1>My comments!</h1>";
+
+$servername = "{{ db_server }}";
+$username = "{{ db_user }}";
+$password = "{{ db_password }}";
+$database = "{{ db_name }}";
+
+
+$conn = new mysqli($servername, $username, $password, $database);
+
+if($conn->connect_error){
+echo "oh no!";
+die("Connection to DB failed: " . $conn->connect_error);
+}
+
+$sql = "SELECT username, comment FROM comments";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0){
+
+while($row = $result->fetch_assoc()){
+echo "Comment: " . $row["comment"]. "<br>By: " . $row["username"]. "<br><br><br>";
+}
+} else {
+echo "No comments!";
+}
+
+$conn->close();
+
+?>

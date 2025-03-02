@@ -1,0 +1,14 @@
+---
+# defaults file for kali
+
+# Sliver settings
+sliver_operator_name: "adam"
+sliver_lhost: "127.0.0.1"
+sliver_payload_path: "/home/kali/sliver-payload"
+
+# Package lists
+kali_packages:
+  - sliver
+  - netexec  # New name for what was formerly called CrackMapExec
+  - metasploit-framework
+  - expect

@@ -1,0 +1,22 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+  
+  pre_tasks:
+    - name: Update apt cache (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+      when: ansible_os_family == "Debian"
+      
+    - name: Install required packages for tests
+      ansible.builtin.package:
+        name:
+          - sudo
+          - openssh-server
+          - openssh-client
+        state: present
+  
+  roles:
+    - role: common

@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: web
+  namespace: ncae
+  author: ncae_admin
+  description: Configuration for web server with vulnerable PHP application
+  company: NCAE
+
+  license: MIT
+
+  min_ansible_version: "2.10"
+
+  platforms:
+    - name: Debian
+      versions:
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+
+  galaxy_tags:
+    - web
+    - php
+    - application
+    - vulnerable
+
+dependencies: []

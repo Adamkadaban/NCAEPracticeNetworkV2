@@ -1,0 +1,21 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: true
+  
+  tasks:
+    - name: Verify required packages are installed
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: present
+      register: package_state
+      loop: "{{ kali_packages }}"
+      failed_when: package_state.failed | default(false)
+      changed_when: false
+      
+    - name: Check if sliver service exists
+      ansible.builtin.stat:
+        path: /etc/systemd/system/sliver.service
+      register: sliver_service_exists
+      failed_when: not sliver_service_exists.stat.exists

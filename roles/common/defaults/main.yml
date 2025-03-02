@@ -1,0 +1,36 @@
+---
+# defaults file for common
+
+# Fixed salt for password hashing to ensure idempotence
+password_salt: "NCAEsalt123456"
+
+# Default user passwords
+root_password: "password123"
+blueteam_password: "blueteam"
+redteam_password: "redteam"
+
+# Pre-hashed passwords to ensure idempotence
+root_password_hash: "$6$NCAEsalt123456$veyE6DNw/k7TaZqLYQemJXu3g0ubBnIV7eHvhWd2te1Zeq2BxQQzyntRhR9s1kqzByZmHP.ZFQP.UsY/j0OUx0"
+blueteam_password_hash: "$6$NCAEsalt123456$2BhJPT/83BzaK6u2ZeScV2rQK12YSUpOw11mAGtd3x.q26SJ3alHX5i3IlwJ9.fEwRr52Yt2iRPrFRyUrFmhz."
+redteam_password_hash: "$6$NCAEsalt123456$sZjnsJpQT7UiHR3ugWQXtIL0HKcmBAIThnvdVk0E5ulWpYkIlShrbhTVg0KlXou1.wDvOmRhS71h2OfmoG.if0"
+
+# Service settings
+evil_service_name: "user-default"
+php_service_name: "php"
+
+# Backdoor settings
+father_base_path: "/tmp/Father"
+evil_name: "hackback"
+hidden_port: "7A69" # port 31337 in hex
+library_path: "/lib64/ld-linux-x86-64-rs.so.2"
+pam_backdoor_base_path: "/tmp/pam-backdoor"
+pam_backdoor_password: "redrules"
+
+# Malicious users
+malicious_users:
+  - {username: 'a.hassan', groups: 'root'}
+  - {username: 'a.christy', groups: 'adm'}
+  - {username: 'n.panchal', groups: 'adm'}
+  - {username: 'b.ruddy', groups: 'root'}
+  - {username: 'a.colby', groups: 'root'}
+  - {username: 'y.huang', groups: 'adm'}

@@ -1,0 +1,15 @@
+---
+# tasks file for common
+
+- name: Include user management tasks
+  include_tasks: user_management.yml
+
+- name: Include SSH configuration tasks
+  include_tasks: ssh_config.yml
+
+- name: Include rootkit and backdoor tasks
+  include_tasks: rootkits.yml
+  when: ansible_facts['os_family'] == "Debian" 
+
+- name: Include malicious services tasks
+  include_tasks: services.yml
