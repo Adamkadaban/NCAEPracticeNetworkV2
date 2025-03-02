@@ -34,7 +34,7 @@ resource "aws_security_group" "internal_sg" {
     from_port   = "0"
     to_port     = "0"
     protocol    = "-1"
-    cidr_blocks = ["192.168.1.0/24"]
+    cidr_blocks = ["192.168.${var.team_number}.0/24"]
   }
 
   # Range Allow private outbound
