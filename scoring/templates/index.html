@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCAE Practice Network - Scoreboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .score-summary {
+            display: flex;
+            justify-content: space-between;
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .score-summary strong {
+            font-size: 22px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status-up {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-partial {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-down {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .refresh {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+        .last-updated {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #999;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .updating {
+            animation: pulse 1s infinite;
+        }
+    </style>
+    <script>
+        // Function to update the scoreboard
+        function updateScoreboard() {
+            console.log("Updating scoreboard...");
+            document.getElementById('update-indicator').classList.add('updating');
+            
+            fetch('/api/score')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Received data:", data);
+                    
+                    // Update total score and potential score
+                    document.getElementById('total-score').textContent = data.total_score.toFixed(2);
+                    document.getElementById('potential-score').textContent = data.potential_score;
+                    
+                    // Update service statuses
+                    const tbody = document.querySelector('tbody');
+                    tbody.innerHTML = ''; // Clear existing rows
+                    
+                    // Create new rows for each service
+                    for (const [service, status] of Object.entries(data.services)) {
+                        const row = document.createElement('tr');
+                        
+                        // Service name cell
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = service;
+                        row.appendChild(nameCell);
+                        
+                        // Status cell
+                        const statusCell = document.createElement('td');
+                        const statusSpan = document.createElement('span');
+                        statusSpan.classList.add('status');
+                        
+                        if (status === 1) {
+                            statusSpan.classList.add('status-up');
+                            statusSpan.textContent = 'UP';
+                        } else if (status === 0) {
+                            statusSpan.classList.add('status-partial');
+                            statusSpan.textContent = 'PARTIAL';
+                        } else {
+                            statusSpan.classList.add('status-down');
+                            statusSpan.textContent = 'DOWN';
+                        }
+                        
+                        statusCell.appendChild(statusSpan);
+                        row.appendChild(statusCell);
+                        
+                        // Points cell
+                        const pointsCell = document.createElement('td');
+                        if (service === "SSH") {
+                            pointsCell.textContent = '20';
+                        } else if (service === "WEB") {
+                            pointsCell.textContent = '20';
+                        } else if (service === "DB") {
+                            pointsCell.textContent = '15';
+                        } else if (service === "DNS") {
+                            pointsCell.textContent = '30';
+                        } else {
+                            pointsCell.textContent = '10';
+                        }
+                        row.appendChild(pointsCell);
+                        
+                        tbody.appendChild(row);
+                    }
+                    
+                    // Update timestamp
+                    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+                    console.log("Update complete at", new Date().toLocaleTimeString());
+                    
+                    // Remove updating indicator after successful update
+                    setTimeout(() => {
+                        document.getElementById('update-indicator').classList.remove('updating');
+                    }, 500);
+                })
+                .catch(error => {
+                    console.error('Error updating scoreboard:', error);
+                    document.getElementById('update-indicator').textContent = 'Error updating! Retrying...';
+                    // Remove updating indicator after error
+                    setTimeout(() => {
+                        document.getElementById('update-indicator').classList.remove('updating');
+                    }, 500);
+                });
+        }
+        
+        // Update timer variable
+        let updateTimer;
+        
+        // Function to start auto-refresh
+        function startAutoRefresh() {
+            console.log("Starting auto-refresh");
+            // Initial update
+            updateScoreboard();
+            // Set up regular updates
+            updateTimer = setInterval(updateScoreboard, 5000);
+            // Add visual feedback every 5 seconds
+            setInterval(() => {
+                console.log("Auto-refresh active");
+            }, 5000);
+        }
+        
+        // Start updates when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("Page loaded, starting updates");
+            startAutoRefresh();
+            
+            // Add manual refresh button listener
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                console.log("Manual refresh clicked");
+                updateScoreboard();
+            });
+        });
+        
+        // If page becomes visible again after being hidden, ensure updates are running
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log("Page visible again, ensuring updates are running");
+                if (!updateTimer) {
+                    startAutoRefresh();
+                }
+                // Force an immediate update
+                updateScoreboard();
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>NCAE Practice Network Scoreboard</h1>
+        
+        <div class="score-summary">
+            <div>Current Score: <strong id="total-score">{{ total_score }}</strong></div>
+            <div>Potential Score: <strong id="potential-score">{{ potential_score }}</strong></div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Status</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service, status in services.items() %}
+                <tr>
+                    <td>{{ service }}</td>
+                    <td>
+                        {% if status == 1 %}
+                        <span class="status status-up">UP</span>
+                        {% elif status == 0 %}
+                        <span class="status status-partial">PARTIAL</span>
+                        {% else %}
+                        <span class="status status-down">DOWN</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if service == "SSH" %}
+                        20
+                        {% elif service == "WEB" %}
+                        20
+                        {% elif service == "DB" %}
+                        15
+                        {% elif service == "DNS" %}
+                        30
+                        {% else %}
+                        10
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <p class="refresh" id="update-indicator">Scores automatically update every 5 seconds</p>
+        <p class="last-updated">Last updated: <span id="last-updated">{{ time }}</span></p>
+        <div style="text-align: center; margin-top: 15px;">
+            <button id="refresh-btn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Manual Refresh
+            </button>
+        </div>
+    </div>
+</body>
+</html>
