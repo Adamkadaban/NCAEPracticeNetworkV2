@@ -1,4 +1,4 @@
-# NCAEPracticeNetworkV2
+# Vulnerable Network for Cyber Defense Competition practice 
 Terraform and Ansible to deploy an all-linux vulnerable network to practice for NCAE CyberGames
 
 ## Requirements
