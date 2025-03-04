@@ -1,7 +1,0 @@
----
-- name: Test common role
-  hosts: localhost
-  connection: local
-  gather_facts: false
-  roles:
-    - role: ../../common
