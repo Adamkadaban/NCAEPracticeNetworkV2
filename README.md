@@ -39,7 +39,6 @@ ssh -i jumpbox-1-key.pem admin@$(terraform output jumpbox_ip | jq -r)
 sudo su
 cd ~
 mv /home/admin/*
-chmod +x *.pem
 ```
 
 4. Configure inventory
